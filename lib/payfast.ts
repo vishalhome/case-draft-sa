@@ -7,7 +7,7 @@ export function payfastConfig() {
   return {
     merchantId: requireEnv('PAYFAST_MERCHANT_ID'),
     merchantKey: requireEnv('PAYFAST_MERCHANT_KEY'),
-    passphrase: requireEnv('PAYFAST_PASSPHRASE'),
+    passphrase: process.env.PAYFAST_PASSPHRASE || '',
     sandbox: process.env.PAYFAST_SANDBOX === 'true'
   };
 }
@@ -22,65 +22,84 @@ function encodeValue(value: string) {
   return encodeURIComponent(value).replace(/%20/g, '+');
 }
 
-export function signatureFromData(data: PayfastPayload, passphrase: string) {
-  const pieces = Object.keys(data)
-    .filter((key) => key !== 'signature' && data[key] !== '')
-    .sort()
-    .map((key) => `${key}=${encodeValue(data[key])}`);
-
-  if (passphrase) pieces.push(`passphrase=${encodeValue(passphrase)}`);
-  const body = pieces.join('&');
-  return crypto.createHash('md5').update(body).digest('hex');
-}
-
-export function verifySignature(data: PayfastPayload) {
-  const { passphrase } = payfastConfig();
-
+/**
+ * Used only for the hosted payment form redirect.
+ * This uses the exact ordered field list you submit to PayFast.
+ */
+export function signatureForPaymentForm(data: PayfastPayload, passphrase?: string) {
   const orderedKeys = [
-    "merchant_id",
-    "merchant_key",
-    "return_url",
-    "cancel_url",
-    "notify_url",
-    "name_first",
-    "name_last",
-    "email_address",
-    "m_payment_id",
-    "amount",
-    "item_name",
-    "item_description",
-    "custom_int1",
-    "custom_int2",
-    "custom_int3",
-    "custom_int4",
-    "custom_int5",
-    "custom_str1",
-    "custom_str2",
-    "custom_str3",
-    "custom_str4",
-    "custom_str5",
-    "email_confirmation",
-    "confirmation_address",
-    "payment_method"
+    'merchant_id',
+    'merchant_key',
+    'return_url',
+    'cancel_url',
+    'notify_url',
+    'name_first',
+    'name_last',
+    'email_address',
+    'm_payment_id',
+    'amount',
+    'item_name',
+    'item_description',
+    'custom_int1',
+    'custom_int2',
+    'custom_int3',
+    'custom_int4',
+    'custom_int5',
+    'custom_str1',
+    'custom_str2',
+    'custom_str3',
+    'custom_str4',
+    'custom_str5',
+    'email_confirmation',
+    'confirmation_address',
+    'payment_method'
   ];
 
-  const pieces: string[] = [];
+  const parts: string[] = [];
 
   for (const key of orderedKeys) {
     const value = data[key];
-    if (value !== undefined && value !== null && value !== "") {
-      pieces.push(`${key}=${encodeValue(value)}`);
+    if (value !== undefined && value !== null && value !== '') {
+      parts.push(`${key}=${encodeValue(String(value).trim())}`);
     }
   }
 
-  if (passphrase && passphrase.trim() !== "") {
-    pieces.push(`passphrase=${encodeValue(passphrase)}`);
+  if (passphrase && passphrase.trim() !== '') {
+    parts.push(`passphrase=${encodeValue(passphrase.trim())}`);
   }
 
-  const body = pieces.join("&");
-  const calculated = crypto.createHash("md5").update(body).digest("hex");
+  const signatureString = parts.join('&');
+  return crypto.createHash('md5').update(signatureString).digest('hex');
+}
 
-  return calculated === data.signature;
+/**
+ * Used only for ITN verification.
+ * This uses the actual incoming payload fields from PayFast,
+ * excluding "signature", preserving the incoming key order.
+ */
+export function verifyItnSignature(data: PayfastPayload) {
+  const submittedSignature = data.signature || '';
+  const { passphrase } = payfastConfig();
+
+  const parts: string[] = [];
+
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'signature') continue;
+    if (value === undefined || value === null || value === '') continue;
+    parts.push(`${key}=${encodeValue(String(value).trim())}`);
+  }
+
+  if (passphrase && passphrase.trim() !== '') {
+    parts.push(`passphrase=${encodeValue(passphrase.trim())}`);
+  }
+
+  const signatureString = parts.join('&');
+  const calculatedSignature = crypto
+    .createHash('md5')
+    .update(signatureString)
+    .digest('hex');
+
+  return calculatedSignature === submittedSignature;
 }
 
 export function buildPaymentForm(params: {
@@ -99,6 +118,7 @@ export function buildPaymentForm(params: {
   customStr3: string;
 }) {
   const config = payfastConfig();
+
   const form: PayfastPayload = {
     merchant_id: config.merchantId,
     merchant_key: config.merchantKey,
@@ -116,6 +136,7 @@ export function buildPaymentForm(params: {
     custom_str2: params.customStr2,
     custom_str3: params.customStr3
   };
-  form.signature = signatureFromData(form, config.passphrase);
+
+  form.signature = signatureForPaymentForm(form, config.passphrase);
   return form;
 }
