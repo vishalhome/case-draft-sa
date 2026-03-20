@@ -1,0 +1,40 @@
+:root {
+  --bg: #0f1117;
+  --panel: #171a22;
+  --card: #1d212b;
+  --text: #f3efe6;
+  --muted: #b7b0a2;
+  --gold: #c7a24b;
+  --gold-soft: #7f6730;
+  --danger: #b24b4b;
+  --border: #322c20;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); }
+a { color: inherit; text-decoration: none; }
+body { min-height: 100vh; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.grid { display: grid; gap: 16px; }
+.grid.two { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.btn { display: inline-block; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--gold-soft); background: var(--gold); color: #17120a; font-weight: 700; cursor: pointer; }
+.btn.secondary { background: transparent; color: var(--text); }
+.btn.danger { background: var(--danger); color: white; border-color: #7e2e2e; }
+.input, .textarea, .select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #3c3f4b; background: #12151d; color: var(--text); }
+.label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+.stack { display: grid; gap: 12px; }
+.hero { padding: 64px 24px; }
+.hero h1 { font-size: 44px; line-height: 1.1; margin: 0 0 12px; }
+.hero p { max-width: 720px; color: var(--muted); font-size: 18px; }
+.small { font-size: 13px; color: var(--muted); }
+.notice { border: 1px solid var(--gold-soft); background: rgba(199,162,75,.08); padding: 10px 12px; border-radius: 10px; color: #ecd8a6; }
+.nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.pill { display: inline-block; padding: 4px 8px; border-radius: 999px; background: rgba(199,162,75,.14); color: #f0dcaa; font-size: 12px; }
+.message { padding: 12px 14px; border-radius: 12px; margin-bottom: 10px; }
+.message.user { background: #253044; }
+.message.assistant { background: #1a1f28; border: 1px solid var(--border); }
+pre.wrap { white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; }
+hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+@media (max-width: 720px) { .hero h1 { font-size: 34px; } .container { padding: 16px; } }
