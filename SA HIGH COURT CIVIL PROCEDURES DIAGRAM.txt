@@ -1,0 +1,43 @@
+graph TD
+    A[Section 129 Notice Received<br>NCA s129] --> B{Defendant's Response}
+    B -->|Ignore| C[Summons Issued<br>Rule 17]
+    B -->|Dispute| D[Approach Credit Provider]
+    B -->|Debt Review| E[Apply for Debt Review<br>NCA s86, 60 business days]
+    
+    C --> F[Serve Summons<br>Rule 4]
+    F --> G{Defendant's Action<br>Rule 19, 10 court days}
+    G -->|No Response| H[Default Judgment<br>Rule 31]
+    G -->|File Notice of Intention to Defend| I[Notice of Intention to Defend<br>Rule 19]
+    
+    I --> J{Defendant's Next Step<br>Rule 23, 20 court days}
+    J -->|File Exception| K[Notice of Intention to Except<br>Rule 23, 10 court days]
+    J -->|No Exception| L[Plaintiff Files Declaration<br>Rule 20, 20 court days]
+    
+    K --> M[Notice of Exception<br>Rule 23, 15 court days]
+    M --> N[Exception Hearing<br>Rule 23]
+    N -->|Exception Upheld| O[Plaintiff Amends Particulars of Claim<br>Rule 23, 15 court days]
+    N -->|Exception Dismissed| L
+    
+    O --> L
+    
+    L --> P[Defendant Files Plea<br>Rule 22, 20 court days]
+    P --> Q[Plaintiff Files Replication<br>Rule 25, 15 court days]
+    Q --> R[Close Pleadings]
+    
+    R --> S[Discovery Process<br>Rule 35, 20 court days]
+    S --> T[Pre-Trial Conference<br>Rule 37]
+    T --> U[Trial<br>Rule 39]
+    U --> V[Judgment<br>Rule 39]
+    
+    V --> W{Appeal?<br>Rule 49, 15 court days to file Notice of Appeal}
+    W -->|Yes| X[File Notice of Appeal<br>Rule 49]
+    W -->|No| Y[Execution of Judgment<br>Rule 45]
+    
+    D -->|Resolved| Z[End of Process]
+    D -->|Not Resolved| C
+    
+    E -->|Accepted| AA[Debt Review Process<br>NCA s86]
+    E -->|Rejected| C
+    
+    H --> Y
+    X --> AB[Appeal Process<br>Rule 49]

@@ -1,0 +1,70 @@
+Sub SouthAfricanHighCourtCivilProcedure()
+    Dim response As VbMsgBoxResult
+    Dim defendant_action As String
+    
+    MsgBox "Section 129 Notice Received", vbInformation, "Start"
+    
+    response = MsgBox("How does the defendant respond?" & vbNewLine & _
+                      "Yes: Dispute" & vbNewLine & _
+                      "No: Ignore" & vbNewLine & _
+                      "Cancel: Apply for Debt Review", vbYesNoCancel, "Defendant's Response")
+    
+    Select Case response
+        Case vbYes
+            MsgBox "Defendant approaches Credit Provider", vbInformation
+            If MsgBox("Is the dispute resolved?", vbYesNo) = vbNo Then
+                GoTo IssueSummons
+            Else
+                MsgBox "Process Ends", vbInformation
+                Exit Sub
+            End If
+        Case vbNo
+            GoTo IssueSummons
+        Case vbCancel
+            If MsgBox("Is Debt Review accepted?", vbYesNo) = vbYes Then
+                MsgBox "Debt Review Process", vbInformation
+                Exit Sub
+            Else
+                GoTo IssueSummons
+            End If
+    End Select
+    
+IssueSummons:
+    MsgBox "Summons Issued (Rule 17) and Served (Rule 4)", vbInformation
+    
+    response = MsgBox("Does the defendant file a Notice of Intention to Defend? (10 court days, Rule 19)", vbYesNo)
+    
+    If response = vbNo Then
+        MsgBox "Default Judgment (Rule 31)", vbInformation
+        GoTo ExecuteJudgment
+    End If
+    
+    MsgBox "Notice of Intention to Defend filed", vbInformation
+    
+    If MsgBox("Does the defendant file an exception? (20 court days, Rule 23)", vbYesNo) = vbYes Then
+        MsgBox "Notice of Intention to Except filed (10 court days)", vbInformation
+        MsgBox "Notice of Exception filed (15 court days)", vbInformation
+        MsgBox "Exception Hearing", vbInformation
+        If MsgBox("Is the exception upheld?", vbYesNo) = vbYes Then
+            MsgBox "Plaintiff amends Particulars of Claim (15 court days)", vbInformation
+        End If
+    End If
+    
+    MsgBox "Plaintiff files Declaration (20 court days, Rule 20)", vbInformation
+    MsgBox "Defendant files Plea (20 court days, Rule 22)", vbInformation
+    MsgBox "Plaintiff files Replication (15 court days, Rule 25)", vbInformation
+    MsgBox "Close Pleadings", vbInformation
+    MsgBox "Discovery Process (20 court days, Rule 35)", vbInformation
+    MsgBox "Pre-Trial Conference (Rule 37)", vbInformation
+    MsgBox "Trial (Rule 39)", vbInformation
+    MsgBox "Judgment", vbInformation
+    
+    If MsgBox("Does any party appeal? (15 court days to file Notice of Appeal, Rule 49)", vbYesNo) = vbYes Then
+        MsgBox "Notice of Appeal filed", vbInformation
+        MsgBox "Appeal Process", vbInformation
+    End If
+    
+ExecuteJudgment:
+    MsgBox "Execution of Judgment (Rule 45)", vbInformation
+    MsgBox "Process Ends", vbInformation
+End Sub

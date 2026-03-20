@@ -52,3 +52,14 @@ A case-based legal drafting SaaS for South African matters.
 5. Put all environment variables into Vercel
 6. Connect the GitHub repository to Vercel and deploy
 7. Test sign-up, email confirmation, purchase, ITN, and Claude generation
+
+
+## Front-end litigation workstation additions
+
+The case workspace now includes:
+- document upload and per-document tagging for summons, POC, section 129 notice, plea, discovery bundle, contract, and other papers
+- quick-action litigation workflows for exception review, discovery planning, procedural roadmap, and next-document drafting
+- a dedicated **Run full POC + Summons analysis** button that requires a tagged summons and Particulars of Claim, then asks the AI for a structured legal report
+- a visible SA High Court procedure roadmap drawn from the supplied section 129 / Rule 17 / Rule 4 / Rule 19 / Rule 23 / Rule 20 / Rule 22 / Rule 25 / Rule 35 / Rule 37 / Rule 39 / Rule 49 / Rule 45 flow
+
+Current limitation: uploaded PDFs are still sent directly to Claude per request and are not yet stored permanently in Supabase Storage. That can be added in the next iteration.
