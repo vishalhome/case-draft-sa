@@ -39,9 +39,9 @@ pre.wrap { white-space: pre-wrap; word-break: break-word; font-family: inherit; 
 hr.sep { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 @media (max-width: 720px) { .hero h1 { font-size: 34px; } .container { padding: 16px; } }
 
-.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, .9fr); gap: 16px; align-items: start; }
+.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, .9fr); gap: 16px; align-items: flex-start; }
 .case-header-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 16px; }
-.section-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.section-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .doc-list { display: grid; gap: 10px; }
 .doc-item { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: #161a23; }
 .quick-actions { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
