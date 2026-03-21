@@ -141,16 +141,19 @@ export async function POST(request: NextRequest) {
     const creditsToConsume = Math.max(1, Math.ceil(tokenUsed / 1000));
 
     if (creditsToConsume > availableCredits) {
-      return NextResponse.json(
-        {
-          error: `Insufficient credits. Needed ${creditsToConsume}, available ${availableCredits}`,
-          tokensUsed: tokenUsed,
-          creditsNeeded: creditsToConsume,
-          remainingCredits: availableCredits,
-        },
-        { status: 403 }
-      );
-    }
+  return NextResponse.json(
+    {
+      error: `Insufficient credits. Needed ${creditsToConsume}, available ${availableCredits}`,
+      tokensUsed: tokenUsed,
+      creditsNeeded: creditsToConsume,
+      remainingCredits: availableCredits,
+      debugCaseId: caseId,
+      debugCaseNumber: caseRow.case_number,
+      debugCaseCreditsBalance: caseRow.credits_balance,
+    },
+    { status: 403 }
+  );
+}
 
     const { error: consumeError } = await admin.rpc('consume_case_credits', {
       p_case_id: caseId,
