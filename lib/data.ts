@@ -18,7 +18,13 @@ export async function getDashboardCases(userId: string) {
 
 export async function getCaseForUser(caseId: string, userId: string) {
   const admin = createAdminSupabaseClient();
-  const { data: caseRow, error } = await admin.from('cases').select('*').eq('id', caseId).eq('user_id', userId).single();
+
+  const { data: caseRow, error } = await admin
+    .from('cases')
+    .select('*')
+    .eq('id', caseId)
+    .eq('user_id', userId)
+    .single();
   if (error) throw error;
 
   const { data: messages, error: msgError } = await admin
@@ -30,11 +36,13 @@ export async function getCaseForUser(caseId: string, userId: string) {
     .limit(50);
   if (msgError) throw msgError;
 
-  const { data: credits, error: creditsError } = await admin
-    .rpc('get_case_available_credits', { p_case_id: caseId, p_user_id: userId });
-  if (creditsError) throw creditsError;
+  let availableCredits = Number(caseRow.credits_balance ?? 0);
 
-  return { caseRow, messages, availableCredits: Number(credits ?? 0) };
+  if (!Number.isFinite(availableCredits)) {
+    availableCredits = 0;
+  }
+
+  return { caseRow, messages, availableCredits };
 }
 
 export async function createCaseForUser(userId: string, formData: FormData) {
