@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { HIGH_COURT_PROCEDURE, QUICK_ACTIONS } from '@/lib/legal-workflows';
 
 type Message = {
@@ -13,17 +14,6 @@ type UploadedDocument = {
   file: File;
   docType: string;
 };
-
-async function fileToBase64(file: File) {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
-  return dataUrl.split(',')[1];
-}
 
 const DOCUMENT_TYPES = [
   'Particulars of Claim',
@@ -40,8 +30,12 @@ const DOCUMENT_TYPES = [
   'Other',
 ];
 
-const MAX_FILE_SIZE_MB = 2;
-const MAX_DOCUMENT_COUNT = 2;
+const MAX_DOCUMENT_COUNT = 5;
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export function Workstation({
   caseId,
@@ -104,23 +98,8 @@ export function Workstation({
 
     if (files.length > MAX_DOCUMENT_COUNT) {
       setDocuments([]);
-      setError(
-        `Please upload no more than ${MAX_DOCUMENT_COUNT} documents at a time for now.`
-      );
+      setError(`Please upload no more than ${MAX_DOCUMENT_COUNT} documents at a time.`);
       return;
-    }
-
-    for (const file of files) {
-      const sizeMb = file.size / (1024 * 1024);
-      if (sizeMb > MAX_FILE_SIZE_MB) {
-        setDocuments([]);
-        setError(
-          `File too large: ${file.name} is ${sizeMb.toFixed(
-            2
-          )} MB. Keep each file under ${MAX_FILE_SIZE_MB} MB for now.`
-        );
-        return;
-      }
     }
 
     const next = files.map((file) => ({
@@ -148,6 +127,25 @@ export function Workstation({
     setError('');
   }
 
+  async function uploadToSupabase(file: File, currentCaseId: string) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `cases/${currentCaseId}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('case-documents')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || 'application/pdf',
+      });
+
+    if (uploadError) {
+      throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
+    }
+
+    return filePath;
+  }
+
   async function send(explicitPrompt?: string) {
     const finalPrompt = String(explicitPrompt ?? prompt).trim();
     if (!finalPrompt || busy) return;
@@ -156,30 +154,18 @@ export function Workstation({
     setError('');
 
     try {
-      if (documents.length > MAX_DOCUMENT_COUNT) {
-        throw new Error(
-          `Please upload no more than ${MAX_DOCUMENT_COUNT} documents at a time for now.`
-        );
-      }
-
-      for (const document of documents) {
-        const sizeMb = document.file.size / (1024 * 1024);
-        if (sizeMb > MAX_FILE_SIZE_MB) {
-          throw new Error(
-            `File too large: ${document.file.name} is ${sizeMb.toFixed(
-              2
-            )} MB. Keep each file under ${MAX_FILE_SIZE_MB} MB for now.`
-          );
-        }
-      }
-
       const apiDocuments = await Promise.all(
-        documents.map(async (document) => ({
-          label: `${document.docType}: ${document.file.name}`,
-          fileName: document.file.name,
-          mimeType: document.file.type || 'application/pdf',
-          base64: await fileToBase64(document.file),
-        }))
+        documents.map(async (document) => {
+          const storagePath = await uploadToSupabase(document.file, caseId);
+
+          return {
+            label: `${document.docType}: ${document.file.name}`,
+            fileName: document.file.name,
+            docType: document.docType,
+            mimeType: document.file.type || 'application/pdf',
+            storagePath,
+          };
+        })
       );
 
       const inventory = documents.length
@@ -298,8 +284,8 @@ export function Workstation({
               onChange={(e) => setFiles(e.target.files)}
             />
             <div className="small" style={{ marginTop: 8 }}>
-              For now, keep each file under {MAX_FILE_SIZE_MB} MB and upload no
-              more than {MAX_DOCUMENT_COUNT} files at once.
+              Files are now uploaded to secure case storage first. You can upload
+              larger PDFs here without sending the full files directly in the AI request.
             </div>
             <div className="small" style={{ marginTop: 6 }}>
               Best practice: upload summons, Particulars of Claim, contract,
@@ -445,16 +431,11 @@ export function Workstation({
           <ul className="plain-list small">
             <li>Combined or simple summons</li>
             <li>Particulars of Claim</li>
-            <li>
-              Section 129 notice and proof of dispatch, where relevant
-            </li>
+            <li>Section 129 notice and proof of dispatch, where relevant</li>
             <li>Contract / agreement and all annexures</li>
             <li>Statement of account / certificate of balance</li>
             <li>Sheriff returns of service</li>
-            <li>
-              Any notice of intention to defend, exception, plea, or
-              correspondence
-            </li>
+            <li>Any notice of intention to defend, exception, plea, or correspondence</li>
           </ul>
         </div>
       </div>
