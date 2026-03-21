@@ -97,14 +97,14 @@ export async function POST(request: NextRequest) {
       const base64 = Buffer.from(arrayBuffer).toString('base64');
 
       content.push({
-        type: 'document',
-        title: String(doc.label || doc.fileName || 'Document'),
-        source: {
-          type: 'base64',
-          media_type: String(doc.mimeType || 'application/pdf'),
-          data: base64,
-        },
-      });
+      type: 'document',
+      title: String(doc.label || doc.fileName || 'Document'),
+      source: {
+        type: 'base64',
+        media_type: 'application/pdf',
+        data: base64,
+      },
+    });
     }
 
     const caseContext = [
