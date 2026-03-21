@@ -3,7 +3,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminSupabaseClient } from '@/lib/supabase-admin';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
 const STORAGE_BUCKET = 'case-documents';
 
 type IncomingDocument = {
@@ -24,6 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
     const caseId = String(body.caseId || '').trim();
     const prompt = String(body.prompt || '').trim();
     const documents: IncomingDocument[] = Array.isArray(body.documents)
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const availableCredits = Number(caseRow.credits_balance ?? 0);
+
     if (availableCredits <= 0) {
       return NextResponse.json(
         { error: 'No credits available for this case.' },
@@ -63,6 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const system = process.env.SYSTEM_PROMPT;
+
     if (!system) {
       return NextResponse.json(
         { error: 'SYSTEM_PROMPT is not configured on the server.' },
@@ -72,6 +78,7 @@ export async function POST(request: NextRequest) {
 
     const content: Anthropic.Messages.ContentBlockParam[] = [];
 
+    // Load documents from Supabase Storage
     for (const doc of documents) {
       const storagePath = String(doc.storagePath || '').trim();
       if (!storagePath) continue;
@@ -105,6 +112,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Add case context + prompt
     const caseContext = [
       `Case number: ${caseRow.case_number}`,
       caseRow.title ? `Title: ${caseRow.title}` : null,
@@ -120,7 +128,8 @@ export async function POST(request: NextRequest) {
       text: `[CASE]\n${caseContext}\n[/CASE]\n\n${prompt}`,
     });
 
-    const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+    const model =
+      process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 
     const response = await client.messages.create({
       model,
@@ -138,22 +147,21 @@ export async function POST(request: NextRequest) {
       (response.usage.input_tokens || 0) +
       (response.usage.output_tokens || 0);
 
-    const creditsToConsume = Math.max(1, Math.ceil(tokenUsed / 1000));
+    // ✅ NEW PRICING MODEL
+    // 1 credit = 10,000 tokens
+    const creditsToConsume = Math.max(1, Math.ceil(tokenUsed / 10000));
 
     if (creditsToConsume > availableCredits) {
-  return NextResponse.json(
-    {
-      error: `Insufficient credits. Needed ${creditsToConsume}, available ${availableCredits}`,
-      tokensUsed: tokenUsed,
-      creditsNeeded: creditsToConsume,
-      remainingCredits: availableCredits,
-      debugCaseId: caseId,
-      debugCaseNumber: caseRow.case_number,
-      debugCaseCreditsBalance: caseRow.credits_balance,
-    },
-    { status: 403 }
-  );
-}
+      return NextResponse.json(
+        {
+          error: `Insufficient credits. Needed ${creditsToConsume}, available ${availableCredits}`,
+          tokensUsed: tokenUsed,
+          creditsNeeded: creditsToConsume,
+          remainingCredits: availableCredits,
+        },
+        { status: 403 }
+      );
+    }
 
     const { error: consumeError } = await admin.rpc('consume_case_credits', {
       p_case_id: caseId,
@@ -164,7 +172,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (consumeError) {
-      return NextResponse.json({ error: consumeError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: consumeError.message },
+        { status: 500 }
+      );
     }
 
     await admin.from('chat_messages').insert([
