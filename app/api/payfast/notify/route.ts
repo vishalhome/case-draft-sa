@@ -50,16 +50,17 @@ export async function POST(request: NextRequest) {
       return new NextResponse(updateError.message, { status: 500 });
     }
 
-    if (isComplete && payment.status !== 'complete') {
-      const { error: creditError } = await admin.rpc(
-        'grant_case_credits_from_payment',
-        { p_m_payment_id: paymentId }
-      );
+    if (isComplete) {
+  const { error: creditError } = await admin.rpc(
+    'grant_case_credits_from_payment',
+    { p_m_payment_id: paymentId }
+  );
 
-      if (creditError) {
-        return new NextResponse(creditError.message, { status: 500 });
-      }
-    }
+  if (creditError) {
+    console.error('Credit grant failed:', creditError);
+    return new NextResponse(creditError.message, { status: 500 });
+  }
+}
 
     return new NextResponse('OK', { status: 200 });
   } catch (error) {
