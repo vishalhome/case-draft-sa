@@ -142,7 +142,6 @@ export function Workstation({ caseId, startingMessages, availableCredits }: { ca
       setCredits(json.remainingCredits);
       setMessages([...nextMessages, { role: 'assistant', content: json.content }]);
     }
-  }
 
   async function runPocSummonsAnalysis() {
     const hasPoc = documents.some((item) => item.docType === 'Particulars of Claim');
