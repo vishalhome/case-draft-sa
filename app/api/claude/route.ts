@@ -74,9 +74,7 @@ export async function POST(request: NextRequest) {
 
     for (const doc of documents) {
       const storagePath = String(doc.storagePath || '').trim();
-      if (!storagePath) {
-        continue;
-      }
+      if (!storagePath) continue;
 
       const { data: fileData, error: downloadError } = await admin.storage
         .from(STORAGE_BUCKET)
@@ -97,14 +95,14 @@ export async function POST(request: NextRequest) {
       const base64 = Buffer.from(arrayBuffer).toString('base64');
 
       content.push({
-      type: 'document',
-      title: String(doc.label || doc.fileName || 'Document'),
-      source: {
-        type: 'base64',
-        media_type: 'application/pdf',
-        data: base64,
-      },
-    });
+        type: 'document',
+        title: String(doc.label || doc.fileName || 'Document'),
+        source: {
+          type: 'base64',
+          media_type: 'application/pdf',
+          data: base64,
+        },
+      });
     }
 
     const caseContext = [
@@ -122,8 +120,10 @@ export async function POST(request: NextRequest) {
       text: `[CASE]\n${caseContext}\n[/CASE]\n\n${prompt}`,
     });
 
+    const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+
     const response = await client.messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+      model,
       max_tokens: 12000,
       system,
       messages: [{ role: 'user', content }],
@@ -134,17 +134,30 @@ export async function POST(request: NextRequest) {
       .join('\n')
       .trim();
 
-    const used =
+    const tokenUsed =
       (response.usage.input_tokens || 0) +
       (response.usage.output_tokens || 0);
+
+    const creditsToConsume = Math.max(1, Math.ceil(tokenUsed / 1000));
+
+    if (creditsToConsume > availableCredits) {
+      return NextResponse.json(
+        {
+          error: `Insufficient credits. Needed ${creditsToConsume}, available ${availableCredits}`,
+          tokensUsed: tokenUsed,
+          creditsNeeded: creditsToConsume,
+          remainingCredits: availableCredits,
+        },
+        { status: 403 }
+      );
+    }
 
     const { error: consumeError } = await admin.rpc('consume_case_credits', {
       p_case_id: caseId,
       p_user_id: auth.user.id,
-      p_credits_to_consume: used,
+      p_credits_to_consume: creditsToConsume,
       p_request_type: prompt.slice(0, 100),
-      p_model_used:
-        process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+      p_model_used: model,
     });
 
     if (consumeError) {
@@ -167,7 +180,7 @@ export async function POST(request: NextRequest) {
         user_id: auth.user.id,
         role: 'assistant',
         content: text,
-        credits_used: used,
+        credits_used: creditsToConsume,
         attached_document_names: null,
       },
     ]);
@@ -188,7 +201,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       content: text,
-      creditsUsed: used,
+      creditsUsed: creditsToConsume,
+      tokensUsed: tokenUsed,
       remainingCredits: Number(refreshedCase?.credits_balance ?? 0),
     });
   } catch (error) {
