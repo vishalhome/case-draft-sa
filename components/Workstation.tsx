@@ -114,22 +114,33 @@ export function Workstation({ caseId, startingMessages, availableCredits }: { ca
       setPrompt('');
       setActiveQuickAction('');
 
-      const response = await fetch('/api/claude', {
+            const response = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ caseId, prompt: userPrompt, documents: apiDocuments })
       });
-      const json = await response.json();
-      setBusy(false);
-      if (!response.ok) {
-        setError(json.error || 'Request failed');
+
+      const contentType = response.headers.get('content-type') || '';
+      let json: any = null;
+
+      if (contentType.includes('application/json')) {
+        json = await response.json();
+      } else {
+        const text = await response.text();
+        setBusy(false);
+        setError(text || 'Server returned a non-JSON response');
         return;
       }
+
+      setBusy(false);
+
+      if (!response.ok) {
+        setError(json?.error || 'Request failed');
+        return;
+      }
+
       setCredits(json.remainingCredits);
       setMessages([...nextMessages, { role: 'assistant', content: json.content }]);
-    } catch (err) {
-      setBusy(false);
-      setError(err instanceof Error ? err.message : 'Request failed');
     }
   }
 
